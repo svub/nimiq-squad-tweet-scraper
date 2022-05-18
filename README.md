@@ -1,10 +1,10 @@
 # Tweet scraper
 
-> A command line tool to get all latest tweets for a list of IDs of Twitter users. Results will be stored as `results.csv`.
+> A command line tool to get all latest tweets for a list of handles or IDs of Twitter users. Results will be stored as CSV.
 
 ## Setup
 
-Copy `sample.env` to `.env` and edit values as needed.
+Copy `example.env` to `.env` and edit values as needed. See explanations inside the example file.
 
 ## Run
 
