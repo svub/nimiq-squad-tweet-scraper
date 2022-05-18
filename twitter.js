@@ -1,20 +1,25 @@
 // https://developer.twitter.com/en/docs/twitter-api/tweets/timelines/quick-start
 
-import { log, dir } from 'console';
+import { log, warn } from 'console';
+import { appendFileSync } from 'fs';
 import needle from 'needle';
 
 const bearerToken = process.env.BEARER_TOKEN;
 const maxTweets = parseInt(process.env.MAX_TWEETS_PER_USER);
+const keepLog = (process.env.FULL_LOG ?? '').toLocaleLowerCase() === 'yes';
 if (!bearerToken) throw new Error('Bearer token not found. Make sure you copied sample.env to .env and entered the right info in .env.')
 
-export async function getUserTweets(userId) {
+export async function getUserTweets(userId, startTime, endTime) {
   const url = `https://api.twitter.com/2/users/${userId}/tweets`;
   let userTweets = [];
 
 
   let params = {
     "max_results": 100, // 100 is maximum possible
-    "tweet.fields": "id,author_id,created_at,geo,in_reply_to_user_id,lang,possibly_sensitive,referenced_tweets",
+    "start_time": startTime,
+    "end_time": endTime,
+    "tweet.fields": "id,author_id,created_at,in_reply_to_user_id,lang,possibly_sensitive,referenced_tweets",
+    "media.fields": "type,url",
     "expansions": "author_id", // requesting author_id expansion to retrieve user name
   }
 
@@ -31,6 +36,10 @@ export async function getUserTweets(userId) {
 
   while (hasNextPage) {
     let resp = await getPage(url, params, options, nextToken);
+    if (keepLog) appendFileSync('full.log', JSON.stringify(resp, undefined, ' ') + "\n");
+    if (resp && resp.errors) {
+      throw new Error(resp.errors[0].detail);
+    }
     if (resp && resp.meta && resp.meta.result_count && resp.meta.result_count > 0) {
       userName = resp.includes.users[0].username;
       if (resp.data) {
@@ -59,7 +68,7 @@ const getPage = async (url, params, options, nextToken) => {
     const resp = await needle('get', url, params, options);
 
     if (resp.statusCode != 200) {
-      warn(`Request failed: ${resp.statusCode} ${resp.statusMessage}:\n${resp.body}`);
+      warn(`Request failed: ${resp.statusCode} ${resp.statusMessage}:\n${JSON.stringify(resp.body, undefined, ' ')}`);
       return;
     }
     return resp.body;
