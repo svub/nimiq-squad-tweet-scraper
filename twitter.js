@@ -3,7 +3,7 @@
 import { log, warn } from 'console';
 import { appendFileSync } from 'fs';
 import needle from 'needle';
-import { maxTweets, options, keepLog } from './const.js';
+import { maxTweets, options, keepLog, detailedLog } from './const.js';
 
 export async function getUserTweets(userId, startTime, endTime) {
   const url = `https://api.twitter.com/2/users/${userId}/tweets`;
@@ -25,7 +25,7 @@ export async function getUserTweets(userId, startTime, endTime) {
 
   while (hasNextPage) {
     let resp = await getPage(url, params, options, nextToken);
-    if (keepLog) appendFileSync('full.log', JSON.stringify(resp, undefined, ' ') + "\n");
+    if (keepLog) appendFileSync(detailedLog, JSON.stringify(resp, undefined, ' ') + "\n");
     if (resp && resp.errors) {
       throw new Error(resp.errors[0].detail);
     }
@@ -64,4 +64,25 @@ const getPage = async (url, params, options, nextToken) => {
   } catch (error) {
     throw new Error(`Request failed: ${error}`);
   }
+}
+
+export async function getUserIds() {
+  const userHandles = (process.env.USER_HANDLES ?? '').split(',');
+  if (userHandles.length > 0) {
+    const userIds = [];
+    for (const handle of userHandles) {
+      // https://developer.twitter.com/en/docs/twitter-api/users/lookup/api-reference/get-users-by-username-username
+      const url = `https://api.twitter.com/2/users/by/username/${handle}`
+      const response = await needle('get', url, {}, options);
+      if (keepLog) appendFileSync(detailedLog, JSON.stringify(response.body, undefined, ' ') + "\n");
+      if (response.body && response.body.data && response.body.data.id) {
+        userIds.push(response.body.data.id);
+        log(`Found ID ${response.body.data.id} for user ${handle}.`);
+      } else {
+        warn(`No ID found for user ${handle}!`)
+      }
+    }
+    return userIds;
+  }
+  return (process.env.USER_IDS ?? '').split(',')
 }

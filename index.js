@@ -1,13 +1,13 @@
 import 'dotenv/config';
 import { stringify } from 'csv-stringify/sync';
-import { getUserTweets } from './twitter.js';
-import { dir, log, warn } from 'console';
-import { writeFile } from 'fs/promises';
-import needle from 'needle';
-import { options } from './const.js';
+import { getUserIds, getUserTweets } from './twitter.js';
+import { log, warn } from 'console';
 import { spawnSync } from 'child_process';
+import { detailedLog, errorFile, keepLog, resultsFile } from './const.js';
+import { rmSync, writeFileSync } from 'fs';
 
-const userHandles = process.env.USER_HANDLES.split(',');
+if (keepLog) rmSync(detailedLog, { force: true });
+
 const maxTweetsPerUser = process.env.MAX_TWEETS_PER_USER;
 const month = (new Date().getMonth()); // previous month
 const year = new Date().getFullYear();
@@ -18,25 +18,13 @@ let csv = stringify([['text', 'uid', 'name', 'date', 'type', 'flagged']]);
 let errorLog = []
 let count = 0;
 
-const userIds = [];
-for (const handle of userHandles) {
-  // https://developer.twitter.com/en/docs/twitter-api/users/lookup/api-reference/get-users-by-username-username
-  const url = `https://api.twitter.com/2/users/by/username/${handle}`
-  const response = await needle('get', url, {}, options);
-  if (response.body && response.body.data && response.body.data.id) {
-    userIds.push(response.body.data.id);
-    log(`Found ID ${response.body.data.id} for user ${handle}.`);
-  } else {
-    warn(`No ID found for user ${handle}!`)
-    dir(response.body);
-  }
-}
+const userIds = await getUserIds();
 
+log("\nReady for lift-off! 🚀");
+log(`Getting up to ${maxTweetsPerUser} Tweets between ${startTime} and ${endTime} for each of the ${userIds.length} user IDs`);
+if (userIds.length * maxTweetsPerUser / 100 > 900) warn('Note: This might fail due to rate limiting.');
 log("\nPress any key to continue or Ctrl+C to abort.");
 spawnSync("read _ ", {shell: true, stdio: [0, 1, 2]});
-
-log(`Let's do it. 🚀\nGetting up to ${maxTweetsPerUser} Tweets each for ${userIds.length} users between ${startTime} and ${endTime}`);
-if (userIds.length * maxTweetsPerUser / 100 > 900) warn('This might fail due to rate limiting.');
 
 while (userIds.length > 0) {
   const userId = userIds.pop();
@@ -52,8 +40,8 @@ while (userIds.length > 0) {
   }
 };
 
-await writeFile('results.csv', csv);
-await writeFile('results.log', errorLog.join("\n"));
+await writeFileSync(resultsFile, csv);
+await writeFileSync(errorFile, errorLog.join("\n"));
 
-log(`Done. 🤓\nReceived ${count} Tweets. Results are stored in results.csv. `);
+log(`Done. 🌟\nReceived ${count} Tweets. Results are stored in ${resultsFile}. Errors are stored in ${errorFile}.`);
 
