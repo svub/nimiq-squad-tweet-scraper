@@ -3,11 +3,7 @@
 import { log, warn } from 'console';
 import { appendFileSync } from 'fs';
 import needle from 'needle';
-
-const bearerToken = process.env.BEARER_TOKEN;
-const maxTweets = parseInt(process.env.MAX_TWEETS_PER_USER);
-const keepLog = (process.env.FULL_LOG ?? '').toLocaleLowerCase() === 'yes';
-if (!bearerToken) throw new Error('Bearer token not found. Make sure you copied sample.env to .env and entered the right info in .env.')
+import { maxTweets, options, keepLog } from './const.js';
 
 export async function getUserTweets(userId, startTime, endTime) {
   const url = `https://api.twitter.com/2/users/${userId}/tweets`;
@@ -21,13 +17,6 @@ export async function getUserTweets(userId, startTime, endTime) {
     "tweet.fields": "id,author_id,created_at,in_reply_to_user_id,lang,possibly_sensitive,referenced_tweets",
     "media.fields": "type,url",
     "expansions": "author_id", // requesting author_id expansion to retrieve user name
-  }
-
-  const options = {
-    headers: {
-      "User-Agent": "v2UserTweetsJS",
-      "authorization": `Bearer ${bearerToken}`,
-    }
   }
 
   let hasNextPage = true;
