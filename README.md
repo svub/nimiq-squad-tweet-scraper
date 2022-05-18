@@ -9,6 +9,7 @@ Copy `sample.env` to `.env` and edit values as needed.
 ## Run
 
 ```sh
+node install
 node index.js
 ```
 
