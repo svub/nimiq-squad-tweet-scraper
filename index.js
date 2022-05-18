@@ -22,7 +22,6 @@ const userIds = [];
 for (const handle of userHandles) {
   // https://developer.twitter.com/en/docs/twitter-api/users/lookup/api-reference/get-users-by-username-username
   const url = `https://api.twitter.com/2/users/by/username/${handle}`
-  log(url);
   const response = await needle('get', url, {}, options);
   if (response.body && response.body.data && response.body.data.id) {
     userIds.push(response.body.data.id);
